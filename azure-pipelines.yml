@@ -1,0 +1,15 @@
+trigger:
+- master
+
+resources:
+   repositories:
+   - repository: devOps
+     type: git
+     name: DevOps/DevOps
+
+extends:
+  template: node2azWebApp-pipeline.yml@devOps
+  parameters:
+    # required parameters
+    subscriptionId: 'ar-rg-ovid'
+    appName: 'David-SB-Websocket'
