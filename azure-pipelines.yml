@@ -11,5 +11,5 @@ extends:
   template: node2azWebApp-pipeline.yml@devOps
   parameters:
     # required parameters
-    subscriptionId: '0766d027-cfc5-47ae-bd61-ebbc60fd1110'
+    subscriptionId: 'ar-rg-ovid'
     appName: 'David-SB-Websocket'
