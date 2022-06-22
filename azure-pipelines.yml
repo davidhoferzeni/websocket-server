@@ -12,4 +12,4 @@ extends:
   parameters:
     # required parameters
     subscriptionId: 'ar-rg-ovid'
-    appName: 'David-SB-Websocket'
+    appName: 'ovid-socketio'
