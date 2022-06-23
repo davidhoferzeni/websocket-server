@@ -49,4 +49,14 @@ server.listen(port, () => {
   console.log(`listening on *:${port}`);
 });
 
-console.log(seqGen.fixSeqList(2, seqGen.cs.hex()));
+console.time('Create Room List');
+console.time('Create All Sequences');
+const sequenceList = seqGen.fixSeqList(4, seqGen.cs.uc());
+console.timeEnd('Create All Sequences');
+console.time('Shuffle List');
+const roomList = arrOps.shuffle(sequenceList);
+console.timeEnd('Shuffle List');
+console.time('Logging List');
+console.log(roomList);
+console.timeEnd('Logging List');
+console.timeEnd('Create Room List');
