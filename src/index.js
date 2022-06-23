@@ -1,6 +1,7 @@
 //import:
 const express = require('express');
-const seqGen = require('./modules/utility/sequenceGenerator');
+const seqGen = require('./modules/utility/seqGen');
+const arrOps = require('./modules/utility/arrOps');
 
 const app = express();
 
@@ -47,3 +48,5 @@ io.on('connection', (socket) => {
 server.listen(port, () => {
   console.log(`listening on *:${port}`);
 });
+
+console.log(seqGen.fixSeqList(2, seqGen.cs.hex()));
