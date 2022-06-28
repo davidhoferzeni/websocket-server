@@ -90,6 +90,25 @@ function onPointerMoved(event) {
         return
     }
     const currentPosition = new Position(event.clientX, event.clientY);
-    lastPosition.strokeToPosition(currentPosition);
+    // instead of strok to position
+    //lastPosition.strokeToPosition(currentPosition);
+    sendPointerMoveToSocket(lastPosition, currentPosition)
     lastPosition.setPosition(currentPosition);
 }
+
+
+// region: set sockets
+
+var socket = io();
+
+function sendPointerMoveToSocket(fromPosition, toPosition) {
+    socket.emit('chatMessage', JSON.stringify({ from: fromPosition, to: toPosition }));
+}
+
+socket.on('chatMessage', function (positionJson) {
+    const posObj = JSON.parse(positionJson);
+    const fromPosition = new Position(posObj.from.posX, posObj.from.posY);
+    const toPosition = new Position(posObj.to.posX, posObj.to.posY);
+    fromPosition.strokeToPosition(toPosition);
+  });
+ 
