@@ -3,6 +3,8 @@ const express = require('express');
 const seqGen = require('./modules/utility/seqGen');
 const arrOps = require('./modules/utility/arrOps');
 
+const publicSpace = `${__dirname}/public/`;
+
 const app = express();
 
 const port = process.env.PORT || 3000;
@@ -14,7 +16,7 @@ const io = new Server(server);
 app.use(express.static('src/public'));
 
 app.get('/', (req, res) => {
-  res.sendFile(__dirname + '/index.html');
+  res.sendFile(`${publicSpace}/index.html`);
 });
 
 
