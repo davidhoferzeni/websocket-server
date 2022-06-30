@@ -1,3 +1,79 @@
+// classes 
+
+class Canvas {
+    constructor(canvas) {
+        this.canvasObject = typeof canvas === "string" ? document.getElementById(canvas) : canvas;
+        this.expandCanvas();
+        this.context = this.canvasObject.getContext("2d");
+    }
+    expandCanvas() {
+        this.canvasObject.height = window.innerHeight
+        this.canvasObject.width = window.innerWidth
+    }
+
+    saveCanvas() {
+        let data = pageCanvas.canvasObject.toDataURL("imag/png")
+        let a = document.createElement("a");
+        a.href = data;
+        a.download = "sketch.png";
+        a.click();
+    }
+
+    clearCanvas() {
+        this.context.clearRect(0, 0, this.canvasObject.width, this.canvasObject.height);
+    }
+}
+
+class Brush {
+    constructor(canvas, colour = null, lineWidth = null) {
+        this.setCanvas(canvas);
+        this.setLineWidth(lineWidth);
+        this.colour = colour;
+        this.currentPosition = new Position();
+        this.isDrawing = false;
+    }
+
+    strokeToPosition(position) {
+        if (!position.isValid() || !this.currentPosition.isValid()) {
+            return;
+        }
+        this.setCanvasColour();
+        this.canvasContext.beginPath()
+        this.canvasContext.moveTo(this.currentPosition.posX, this.currentPosition.posY)
+        this.canvasContext.lineTo(position.posX, position.posY);
+        this.canvasContext.stroke()
+    }
+
+    setCanvas(canvas) {
+        this.canvasContext = canvas.context;
+    }
+
+    setLineWidth(lineWidth) {
+        this.canvasContext.lineWidth = lineWidth || 5;
+    }
+
+    setCanvasColour() {
+        this.canvasContext.strokeStyle = this.colour;
+    }
+
+    changeColour(colour) {
+        this.colour = colour;
+    }
+
+    setIsDrawing(newState = null) {
+        this.isDrawing = newState === null ? !this.isDrawing : newState;
+    }
+
+    setPosition(newPosition) {
+        this.currentPosition = newPosition;
+    }
+
+    resetPosition() {
+        this.currentPosition.resetPosition();
+    }
+
+}
+
 class Position {
     constructor(posX, posY) {
         this.posX = posX;
@@ -9,58 +85,35 @@ class Position {
         this.posY = null;
     }
 
-    strokeToPosition(position) {
-        if (!position.isValid() || !this.isValid()) {
-            return;
-        }
-        ctx.beginPath()
-        ctx.moveTo(this.posX, this.posY)
-        ctx.lineTo(position.posX, position.posY);
-        ctx.stroke()
-    }
-
-    setPosition(newPosition) {
-        this.posX = newPosition.posX;
-        this.posY = newPosition.posY;
-    }
-
     isValid() {
-        return (typeof this.posX === "number") && (typeof this.posY === "number"); 
+        return (typeof this.posX === "number") && (typeof this.posY === "number");
     }
 }
 
-const lastPosition = new Position();
 
-let canvas = document.getElementById("canvas")
-canvas.height = window.innerHeight
-canvas.width = window.innerWidth
-let ctx = canvas.getContext("2d")
-ctx.lineWidth = 5
+// global
 
-let prevX = null
-let prevY = null
+const pageCanvas = new Canvas("canvas");
+const pageBrush = new Brush(pageCanvas, "#000");
 
-let draw = false
+// event hooks
+
 let clrs = document.querySelectorAll(".clr")
 clrs = Array.from(clrs)
 clrs.forEach(clr => {
     clr.addEventListener("click", () => {
-        ctx.strokeStyle = clr.dataset.clr
+        pageBrush.changeColour(clr.dataset.clr);
     })
 })
 
 let clearBtn = document.querySelector(".clear")
 clearBtn.addEventListener("click", () => {
-    ctx.clearRect(0, 0, canvas.width, canvas.height)
+   pageCanvas.clearCanvas();
 })
 
 let saveBtn = document.querySelector(".save")
 saveBtn.addEventListener("click", () => {
-    let data = canvas.toDataURL("imag/png")
-    let a = document.createElement("a")
-    a.href = data
-    a.download = "sketch.png"
-    a.click()
+    pageCanvas.saveCanvas();
 })
 
 
@@ -70,30 +123,34 @@ window.addEventListener("pointermove", onPointerMoved);
 
 
 function setDrawActive(active = true) {
-    draw = active;
+   pageBrush.setIsDrawing(active);
+}
+
+function getPositionFromEvent(event) {
+    return new Position(event.clientX, event.clientY);
 }
 
 function onPointerDown(event) {
-    setDrawActive();
     event.stopPropagation();
+    setDrawActive();
+    pageBrush.setPosition(getPositionFromEvent(event));
 }
 
 function onPointerUp(event) {
-    setDrawActive(false);
     event.stopPropagation();
-    lastPosition.resetPosition();
+    setDrawActive(false);
+    pageBrush.resetPosition();
 }
 
 function onPointerMoved(event) {
     event.stopPropagation();
-    if (!draw) {
+    if (!pageBrush.isDrawing) {
         return
     }
-    const currentPosition = new Position(event.clientX, event.clientY);
-    // instead of strok to position
-    //lastPosition.strokeToPosition(currentPosition);
-    sendPointerMoveToSocket(lastPosition, currentPosition)
-    lastPosition.setPosition(currentPosition);
+    const currentPosition = getPositionFromEvent(event);
+    sendStrokeToSocket(pageBrush, currentPosition);
+    pageBrush.strokeToPosition(currentPosition);
+    pageBrush.setPosition(currentPosition);
 }
 
 
@@ -101,14 +158,15 @@ function onPointerMoved(event) {
 
 var socket = io();
 
-function sendPointerMoveToSocket(fromPosition, toPosition) {
-    socket.emit('chatMessage', JSON.stringify({ from: fromPosition, to: toPosition }));
+function sendStrokeToSocket(brush, newPosition) {
+    socket.emit('chatMessage', JSON.stringify({ from: brush.currentPosition, to: newPosition, colour: brush.colour }));
 }
 
-socket.on('chatMessage', function (positionJson) {
-    const posObj = JSON.parse(positionJson);
-    const fromPosition = new Position(posObj.from.posX, posObj.from.posY);
-    const toPosition = new Position(posObj.to.posX, posObj.to.posY);
-    fromPosition.strokeToPosition(toPosition);
-  });
- 
+socket.on('chatMessage', function (brushInfoJson) {
+    const brushInfo = JSON.parse(brushInfoJson);
+    const fromPosition = new Position(brushInfo.from.posX, brushInfo.from.posY);
+    const toPosition = new Position(brushInfo.to.posX, brushInfo.to.posY);
+    const foreignBrush = new Brush(pageCanvas, brushInfo.colour);
+    foreignBrush.setPosition(fromPosition);
+    foreignBrush.strokeToPosition(toPosition);
+});

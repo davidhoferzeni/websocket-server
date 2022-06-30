@@ -27,8 +27,7 @@ io.on('connection', (socket) => {
     console.log('user disconnected');
   });
   socket.on('chatMessage', (msg) => {
-    console.log(`user sent: ${msg}`);
-    io.emit('chatMessage', msg);
+    socket.broadcast.emit('chatMessage', msg);
   });
 
   socket.on('switchRoom', function(newroom){
